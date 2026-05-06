@@ -63,4 +63,4 @@ Cada tarea contiene:
 - activity_main.xml → interfaz principal
 
 ---
-## Proyecto académico - uso educativo.
+## académico - uso educativo.
