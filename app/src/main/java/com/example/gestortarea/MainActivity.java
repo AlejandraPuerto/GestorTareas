@@ -209,7 +209,7 @@ public class MainActivity extends AppCompatActivity {
             if (actualizado > 0){
                 Toast.makeText(this, "Actualizado correctamente", Toast.LENGTH_SHORT).show();
                 limpiarCampos();
-                cargarListaTareas(); // 👈 actualiza lista
+                cargarListaTareas();
             } else {
                 Toast.makeText(this, "No existe tarea para actualizar", Toast.LENGTH_SHORT).show();
             }
