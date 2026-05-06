@@ -1,9 +1,9 @@
 # GestorTareas(To-Do List) 
 
 ## 👤 
-Nombre: Vanesa Alejandra Justinico Puerto
-Asignatura: MOVILES II
-Docente: Edgar Camilo Guerrero
+- Nombre: Vanesa Alejandra Justinico Puerto
+- Asignatura: MOVILES II
+- Docente: Edgar Camilo Guerrero
 
 ---
 
