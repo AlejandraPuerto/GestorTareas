@@ -45,7 +45,6 @@ public class MainActivity extends AppCompatActivity {
         btnBorrar = findViewById(R.id.btnBorrar);
         btnVerTareas = findViewById(R.id.btnVerTodos);
 
-
         btnRegistrar.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -80,39 +79,46 @@ public class MainActivity extends AppCompatActivity {
         });
 
         rvTareas.setLayoutManager(new LinearLayoutManager(this));
+
+        cargarListaTareas();
     }
 
     private void registrarTarea(){
-        String id = etId.getText().toString();
         String titulo = etTitulo.getText().toString();
         String descripcion = etDescripcion.getText().toString();
-        String estado = etEstado.getText().toString();
+        String estadoTexto = etEstado.getText().toString();
 
-        if (!id.isEmpty() && !titulo.isEmpty() && !descripcion.isEmpty() && !estado.isEmpty()){
+        if (!titulo.isEmpty() && !descripcion.isEmpty() && !estadoTexto.isEmpty()){
+
+            int estado;
+
+            if (estadoTexto.equalsIgnoreCase("completada")) {
+                estado = 1;
+            } else if (estadoTexto.equalsIgnoreCase("pendiente")) {
+                estado = 0;
+            } else {
+                Toast.makeText(this, "Escribe pendiente o completada", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
             AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-            SQLiteDatabase baseDeDatos = admin.getWritableDatabase();
+            SQLiteDatabase db = admin.getWritableDatabase();
 
             ContentValues registro = new ContentValues();
-            registro.put("id", id);
             registro.put("titulo", titulo);
             registro.put("descripcion", descripcion);
             registro.put("estado", estado);
 
+            db.insert("tareas", null, registro);
+            db.close();
 
-            baseDeDatos.insert("tareas", null, registro);
+            limpiarCampos();
 
-            //Cerrar conexion a la base de datos
-            baseDeDatos.close();
+            Toast.makeText(this, "Tarea registrada", Toast.LENGTH_SHORT).show();
+            cargarListaTareas();
 
-            etId.setText("");
-            etTitulo.setText("");
-            etDescripcion.setText("");
-            etEstado.setText("");
-
-            Toast.makeText(this, "Tarea registrada exitosamente", Toast.LENGTH_SHORT).show();
         } else {
-            Toast.makeText(this, "Debes llenar todos los campos", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -123,18 +129,19 @@ public class MainActivity extends AppCompatActivity {
             AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
             SQLiteDatabase baseDeDatos = admin.getReadableDatabase();
 
-            android.database.Cursor fila = baseDeDatos.rawQuery("SELECT titulo, descripcion, estado FROM tareas WHERE id = " + id, null);
+            android.database.Cursor fila = baseDeDatos.rawQuery(
+                    "SELECT titulo, descripcion, estado FROM tareas WHERE id=?",
+                    new String[]{id}
+            );
 
             if (fila.moveToFirst()){
                 etTitulo.setText(fila.getString(0));
                 etDescripcion.setText(fila.getString(1));
-                etEstado.setText(fila.getString(2));
+                etEstado.setText(String.valueOf(fila.getInt(2)));
                 Toast.makeText(this, "Tarea encontrada", Toast.LENGTH_SHORT).show();
             } else {
                 Toast.makeText(this, "No existe la tarea con ese id", Toast.LENGTH_SHORT).show();
-                etTitulo.setText("");
-                etDescripcion.setText("");
-                etEstado.setText("");
+                limpiarCampos();
             }
 
             baseDeDatos.close();
@@ -151,17 +158,14 @@ public class MainActivity extends AppCompatActivity {
             AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
             SQLiteDatabase baseDeDatos = admin.getWritableDatabase();
 
-            int eliminado = baseDeDatos.delete("tareas", "id=" + id, null);
+            int eliminado = baseDeDatos.delete("tareas", "id=?", new String[]{id});
 
             baseDeDatos.close();
 
-            etTitulo.setText("");
-            etDescripcion.setText("");
-            etEstado.setText("");
-
-
-            if (eliminado == 1){
+            if (eliminado > 0){
                 Toast.makeText(this, "Tarea eliminada exitosamente", Toast.LENGTH_SHORT).show();
+                limpiarCampos();
+                cargarListaTareas();
             } else {
                 Toast.makeText(this, "La tarea no existe", Toast.LENGTH_SHORT).show();
             }
@@ -175,9 +179,21 @@ public class MainActivity extends AppCompatActivity {
         String id = etId.getText().toString();
         String titulo = etTitulo.getText().toString();
         String descripcion = etDescripcion.getText().toString();
-        String estado = etEstado.getText().toString();
+        String estadoTexto = etEstado.getText().toString();
 
-        if (!id.isEmpty() && !titulo.isEmpty() && !descripcion.isEmpty() && !estado.isEmpty()){
+        if (!id.isEmpty() && !titulo.isEmpty() && !descripcion.isEmpty() && !estadoTexto.isEmpty()){
+
+            int estado;
+
+            if (estadoTexto.equalsIgnoreCase("completada")) {
+                estado = 1;
+            } else if (estadoTexto.equalsIgnoreCase("pendiente")) {
+                estado = 0;
+            } else {
+                Toast.makeText(this, "Escribe pendiente o completada", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
             AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
             SQLiteDatabase baseDeDatos = admin.getWritableDatabase();
 
@@ -186,19 +202,18 @@ public class MainActivity extends AppCompatActivity {
             datosNuevos.put("descripcion", descripcion);
             datosNuevos.put("estado", estado);
 
-            int actualizado = baseDeDatos.update("tareas", datosNuevos, "id=" + id, null);
+            int actualizado = baseDeDatos.update("tareas", datosNuevos, "id=?", new String[]{id});
 
             baseDeDatos.close();
 
-            etTitulo.setText("");
-            etDescripcion.setText("");
-            etEstado.setText("");
-
-            if (actualizado == 1){
+            if (actualizado > 0){
                 Toast.makeText(this, "Actualizado correctamente", Toast.LENGTH_SHORT).show();
+                limpiarCampos();
+                cargarListaTareas(); // 👈 actualiza lista
             } else {
                 Toast.makeText(this, "No existe tarea para actualizar", Toast.LENGTH_SHORT).show();
             }
+
         } else {
             Toast.makeText(this, "Debes llenar todos los campos", Toast.LENGTH_SHORT).show();
         }
@@ -225,9 +240,13 @@ public class MainActivity extends AppCompatActivity {
         fila.close();
 
         adaptador = new TareaAdapter(listaTareas);
-
         rvTareas.setAdapter(adaptador);
     }
 
-
+    private void limpiarCampos(){
+        etId.setText("");
+        etTitulo.setText("");
+        etDescripcion.setText("");
+        etEstado.setText("");
+    }
 }

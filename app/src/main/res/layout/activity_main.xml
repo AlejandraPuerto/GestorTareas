@@ -56,7 +56,7 @@
         android:id="@+id/etEstado"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Estado (1 = Completada, 0 = pendiente)"
+        android:hint="Estado (0 = Pendiente, 1 = Completada)"
         android:inputType="textCapSentences"
         android:background="@android:color/white"
         android:padding="12dp"
