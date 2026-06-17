@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "269421806538",
+    "project_id": "gestor-cesde-tarea",
+    "storage_bucket": "gestor-cesde-tarea.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:269421806538:android:8dd5d42ee1998118100533",
+        "android_client_info": {
+          "package_name": "com.example.gestortarea"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAwrCyPGxI1rC2c_QU_qLWu1mqpqGv8ZEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
