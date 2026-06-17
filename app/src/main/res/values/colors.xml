@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="colorPrimary">#D8BFD8</color>
-    <color name="colorAccent">#D8DA7DED</color>
-    <color name="colorFondo">#F5F5F5</color>
-    <color name="colorTextoSecundario">#757575</color>
 
+    <color name="colorPrimary">#D8BFD8</color>
+    <color name="colorFondo">#F5F5F5</color>
+
+    <color name="colorBuscarBorrar">#FA8072</color>
+    <color name="colorEditar">#FFC0CB</color>
 </resources>
