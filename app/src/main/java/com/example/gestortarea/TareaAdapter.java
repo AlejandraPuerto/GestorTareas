@@ -14,27 +14,30 @@ public class TareaAdapter extends RecyclerView.Adapter<TareaAdapter.TareaViewHol
 
     private List<Tarea> listaTareas;
 
-    public TareaAdapter(List<Tarea> listaTareas){
+    public TareaAdapter(List<Tarea> listaTareas) {
         this.listaTareas = listaTareas;
     }
 
     @NonNull
     @Override
-    public TareaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType){
+    public TareaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_tarea, parent, false);
+
         return new TareaViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull TareaViewHolder holder, int posicion){
-        Tarea tareaActual = listaTareas.get(posicion);
+    public void onBindViewHolder(@NonNull TareaViewHolder holder, int position) {
 
-        holder.tvId.setText(String.valueOf(tareaActual.getId()));
+        Tarea tareaActual = listaTareas.get(position);
+
+        holder.tvId.setText(String.valueOf(tareaActual.getNumero()));
         holder.tvTitulo.setText(tareaActual.getTitulo());
         holder.tvDescripcion.setText(tareaActual.getDescripcion());
 
-        if(tareaActual.getEstado() == 1){
+        if (tareaActual.getEstado() == 1) {
             holder.tvEstado.setText("Completada");
         } else {
             holder.tvEstado.setText("Pendiente");
@@ -42,14 +45,15 @@ public class TareaAdapter extends RecyclerView.Adapter<TareaAdapter.TareaViewHol
     }
 
     @Override
-    public int getItemCount(){return listaTareas.size();
+    public int getItemCount() {
+        return listaTareas.size();
     }
 
     public static class TareaViewHolder extends RecyclerView.ViewHolder {
 
         TextView tvId, tvTitulo, tvDescripcion, tvEstado;
 
-        public TareaViewHolder(@NonNull View itemView){
+        public TareaViewHolder(@NonNull View itemView) {
             super(itemView);
 
             tvId = itemView.findViewById(R.id.tvId);

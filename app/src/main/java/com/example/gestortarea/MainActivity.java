@@ -1,34 +1,37 @@
 package com.example.gestortarea;
 
 import android.os.Bundle;
-
-import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.graphics.Insets;
-import androidx.core.view.ViewCompat;
-import androidx.core.view.WindowInsetsCompat;
-import android.view.View;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
-import android.widget.Button;
-import android.database.sqlite.SQLiteDatabase;
-import android.content.ContentValues;
+
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.firebase.firestore.DocumentSnapshot;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.ListenerRegistration;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
     private EditText etId, etTitulo, etDescripcion, etEstado;
-    private Button btnRegistrar, btnBorrar, btnEditar, btnBuscar, btnVerTareas;
+    private Button btnRegistrar, btnBuscar, btnEditar, btnBorrar, btnVerTareas;
 
     private RecyclerView rvTareas;
     private TareaAdapter adaptador;
     private List<Tarea> listaTareas;
 
+    private FirebaseFirestore db;
+    private ListenerRegistration listenerRegistration;
+
     @Override
-    protected void onCreate(Bundle savedInstanceState){
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -37,216 +40,299 @@ public class MainActivity extends AppCompatActivity {
         etDescripcion = findViewById(R.id.etDescripcion);
         etEstado = findViewById(R.id.etEstado);
 
-        rvTareas = findViewById(R.id.rvTareas);
-
         btnRegistrar = findViewById(R.id.btnRegistrar);
         btnBuscar = findViewById(R.id.btnBuscar);
         btnEditar = findViewById(R.id.btnEditar);
         btnBorrar = findViewById(R.id.btnBorrar);
         btnVerTareas = findViewById(R.id.btnVerTodos);
 
-        btnRegistrar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                registrarTarea();
-            }
-        });
-
-        btnBuscar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                buscarTarea();
-            }
-        });
-
-        btnEditar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                modificarTarea();
-            }
-        });
-
-        btnBorrar.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                borrarTarea();
-            }
-        });
-
-        btnVerTareas.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) { cargarListaTareas(); }
-        });
-
+        rvTareas = findViewById(R.id.rvTareas);
         rvTareas.setLayoutManager(new LinearLayoutManager(this));
+
+        listaTareas = new ArrayList<>();
+        adaptador = new TareaAdapter(listaTareas);
+        rvTareas.setAdapter(adaptador);
+
+        db = FirebaseFirestore.getInstance();
+
+        btnRegistrar.setOnClickListener(v -> registrarTarea());
+
+        btnBuscar.setOnClickListener(v -> buscarTarea());
+
+        btnEditar.setOnClickListener(v -> modificarTarea());
+
+        btnBorrar.setOnClickListener(v -> borrarTarea());
+
+        btnVerTareas.setOnClickListener(v -> cargarListaTareas());
 
         cargarListaTareas();
     }
 
-    private void registrarTarea(){
-        String titulo = etTitulo.getText().toString();
-        String descripcion = etDescripcion.getText().toString();
-        String estadoTexto = etEstado.getText().toString();
+    private void registrarTarea() {
 
-        if (!titulo.isEmpty() && !descripcion.isEmpty() && !estadoTexto.isEmpty()){
+        String titulo = etTitulo.getText().toString().trim();
+        String descripcion = etDescripcion.getText().toString().trim();
+        String estadoTexto = etEstado.getText().toString().trim();
 
-            int estado;
+        if (titulo.isEmpty() || descripcion.isEmpty() || estadoTexto.isEmpty()) {
+            Toast.makeText(this,
+                    "Completa todos los campos",
+                    Toast.LENGTH_SHORT).show();
+            return;
+        }
 
-            if (estadoTexto.equalsIgnoreCase("completada")) {
-                estado = 1;
-            } else if (estadoTexto.equalsIgnoreCase("pendiente")) {
-                estado = 0;
-            } else {
-                Toast.makeText(this, "Escribe pendiente o completada", Toast.LENGTH_SHORT).show();
-                return;
-            }
+        int estado;
 
-            AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-            SQLiteDatabase db = admin.getWritableDatabase();
-
-            ContentValues registro = new ContentValues();
-            registro.put("titulo", titulo);
-            registro.put("descripcion", descripcion);
-            registro.put("estado", estado);
-
-            db.insert("tareas", null, registro);
-            db.close();
-
-            limpiarCampos();
-
-            Toast.makeText(this, "Tarea registrada", Toast.LENGTH_SHORT).show();
-            cargarListaTareas();
-
+        if (estadoTexto.equalsIgnoreCase("completada")) {
+            estado = 1;
+        } else if (estadoTexto.equalsIgnoreCase("pendiente")) {
+            estado = 0;
         } else {
-            Toast.makeText(this, "Completa todos los campos", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this,
+                    "Escribe Pendiente o Completada",
+                    Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        btnRegistrar.setEnabled(false);
+
+        db.collection("tareas")
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    int siguienteNumero = queryDocumentSnapshots.size() + 1;
+
+                    Map<String, Object> tarea = new HashMap<>();
+                    tarea.put("numero", siguienteNumero);
+                    tarea.put("titulo", titulo);
+                    tarea.put("descripcion", descripcion);
+                    tarea.put("estado", estado);
+
+                    db.collection("tareas")
+                            .document(String.valueOf(siguienteNumero))
+                            .set(tarea)
+                            .addOnSuccessListener(unused -> {
+
+                                btnRegistrar.setEnabled(true);
+
+                                Toast.makeText(MainActivity.this,
+                                        "Tarea guardada",
+                                        Toast.LENGTH_SHORT).show();
+
+                                limpiarCampos();
+                            })
+                            .addOnFailureListener(e -> {
+
+                                btnRegistrar.setEnabled(true);
+
+                                Toast.makeText(MainActivity.this,
+                                        "Error: " + e.getMessage(),
+                                        Toast.LENGTH_LONG).show();
+                            });
+
+                })
+                .addOnFailureListener(e -> {
+
+                    btnRegistrar.setEnabled(true);
+
+                    Toast.makeText(MainActivity.this,
+                            "Error obteniendo consecutivo",
+                            Toast.LENGTH_SHORT).show();
+                });
     }
 
-    private void buscarTarea(){
-        String id = etId.getText().toString();
+    private void buscarTarea() {
 
-        if (!id.isEmpty()){
-            AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-            SQLiteDatabase baseDeDatos = admin.getReadableDatabase();
+        String numeroTexto = etId.getText().toString().trim();
 
-            android.database.Cursor fila = baseDeDatos.rawQuery(
-                    "SELECT titulo, descripcion, estado FROM tareas WHERE id=?",
-                    new String[]{id}
-            );
-
-            if (fila.moveToFirst()){
-                etTitulo.setText(fila.getString(0));
-                etDescripcion.setText(fila.getString(1));
-                etEstado.setText(String.valueOf(fila.getInt(2)));
-                Toast.makeText(this, "Tarea encontrada", Toast.LENGTH_SHORT).show();
-            } else {
-                Toast.makeText(this, "No existe la tarea con ese id", Toast.LENGTH_SHORT).show();
-                limpiarCampos();
-            }
-
-            baseDeDatos.close();
-            fila.close();
-        } else {
-            Toast.makeText(this, "Debes ingresar el id de la tarea a buscar", Toast.LENGTH_SHORT).show();
+        if (numeroTexto.isEmpty()) {
+            Toast.makeText(this,
+                    "Ingrese el número de la tarea",
+                    Toast.LENGTH_SHORT).show();
+            return;
         }
+
+        int numero = Integer.parseInt(numeroTexto);
+
+        db.collection("tareas")
+                .whereEqualTo("numero", numero)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    if (!queryDocumentSnapshots.isEmpty()) {
+
+                        DocumentSnapshot doc =
+                                queryDocumentSnapshots.getDocuments().get(0);
+
+                        etTitulo.setText(doc.getString("titulo"));
+                        etDescripcion.setText(doc.getString("descripcion"));
+
+                        Long estado = doc.getLong("estado");
+
+                        if (estado != null && estado == 1) {
+                            etEstado.setText("Completada");
+                        } else {
+                            etEstado.setText("Pendiente");
+                        }
+
+                    } else {
+
+                        Toast.makeText(this,
+                                "Tarea no encontrada",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    private void borrarTarea(){
-        String id = etId.getText().toString();
+    private void modificarTarea() {
 
-        if (!id.isEmpty()){
-            AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-            SQLiteDatabase baseDeDatos = admin.getWritableDatabase();
+        String numeroTexto = etId.getText().toString().trim();
+        String titulo = etTitulo.getText().toString().trim();
+        String descripcion = etDescripcion.getText().toString().trim();
+        String estadoTexto = etEstado.getText().toString().trim();
 
-            int eliminado = baseDeDatos.delete("tareas", "id=?", new String[]{id});
-
-            baseDeDatos.close();
-
-            if (eliminado > 0){
-                Toast.makeText(this, "Tarea eliminada exitosamente", Toast.LENGTH_SHORT).show();
-                limpiarCampos();
-                cargarListaTareas();
-            } else {
-                Toast.makeText(this, "La tarea no existe", Toast.LENGTH_SHORT).show();
-            }
+        if (numeroTexto.isEmpty()) {
+            Toast.makeText(this,
+                    "Ingrese el número de la tarea",
+                    Toast.LENGTH_SHORT).show();
+            return;
         }
-        else {
-            Toast.makeText(this, "Ingrese el id de la tarea a eliminar", Toast.LENGTH_SHORT).show();
-        }
+
+        int estado = estadoTexto.equalsIgnoreCase("completada") ? 1 : 0;
+
+        int numero = Integer.parseInt(numeroTexto);
+
+        db.collection("tareas")
+                .whereEqualTo("numero", numero)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    if (!queryDocumentSnapshots.isEmpty()) {
+
+                        String documentId =
+                                queryDocumentSnapshots.getDocuments()
+                                        .get(0)
+                                        .getId();
+
+                        Map<String, Object> datos = new HashMap<>();
+                        datos.put("titulo", titulo);
+                        datos.put("descripcion", descripcion);
+                        datos.put("estado", estado);
+
+                        db.collection("tareas")
+                                .document(documentId)
+                                .update(datos)
+                                .addOnSuccessListener(unused -> {
+
+                                    Toast.makeText(this,
+                                            "Actualizado correctamente",
+                                            Toast.LENGTH_SHORT).show();
+
+                                    limpiarCampos();
+                                });
+
+                    } else {
+
+                        Toast.makeText(this,
+                                "Tarea no encontrada",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    private void modificarTarea(){
-        String id = etId.getText().toString();
-        String titulo = etTitulo.getText().toString();
-        String descripcion = etDescripcion.getText().toString();
-        String estadoTexto = etEstado.getText().toString();
+    private void borrarTarea() {
 
-        if (!id.isEmpty() && !titulo.isEmpty() && !descripcion.isEmpty() && !estadoTexto.isEmpty()){
+        String numeroTexto = etId.getText().toString().trim();
 
-            int estado;
-
-            if (estadoTexto.equalsIgnoreCase("completada")) {
-                estado = 1;
-            } else if (estadoTexto.equalsIgnoreCase("pendiente")) {
-                estado = 0;
-            } else {
-                Toast.makeText(this, "Escribe pendiente o completada", Toast.LENGTH_SHORT).show();
-                return;
-            }
-
-            AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-            SQLiteDatabase baseDeDatos = admin.getWritableDatabase();
-
-            ContentValues datosNuevos = new ContentValues();
-            datosNuevos.put("titulo", titulo);
-            datosNuevos.put("descripcion", descripcion);
-            datosNuevos.put("estado", estado);
-
-            int actualizado = baseDeDatos.update("tareas", datosNuevos, "id=?", new String[]{id});
-
-            baseDeDatos.close();
-
-            if (actualizado > 0){
-                Toast.makeText(this, "Actualizado correctamente", Toast.LENGTH_SHORT).show();
-                limpiarCampos();
-                cargarListaTareas();
-            } else {
-                Toast.makeText(this, "No existe tarea para actualizar", Toast.LENGTH_SHORT).show();
-            }
-
-        } else {
-            Toast.makeText(this, "Debes llenar todos los campos", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private void cargarListaTareas(){
-        listaTareas = new ArrayList<>();
-
-        AdminSQLiteOpenHelper admin = new AdminSQLiteOpenHelper(this, "tareas.db", null, 1);
-        SQLiteDatabase db = admin.getReadableDatabase();
-
-        android.database.Cursor fila = db.rawQuery("SELECT id, titulo, descripcion, estado FROM tareas", null);
-
-        while (fila.moveToNext()){
-            int id = fila.getInt(0);
-            String titulo = fila.getString(1);
-            String descripcion = fila.getString(2);
-            int estado = fila.getInt(3);
-
-            listaTareas.add(new Tarea(id, titulo, descripcion, estado));
+        if (numeroTexto.isEmpty()) {
+            Toast.makeText(this,
+                    "Ingrese el número de la tarea",
+                    Toast.LENGTH_SHORT).show();
+            return;
         }
 
-        db.close();
-        fila.close();
+        int numero = Integer.parseInt(numeroTexto);
 
-        adaptador = new TareaAdapter(listaTareas);
-        rvTareas.setAdapter(adaptador);
+        db.collection("tareas")
+                .whereEqualTo("numero", numero)
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+
+                    if (!queryDocumentSnapshots.isEmpty()) {
+
+                        String documentId =
+                                queryDocumentSnapshots.getDocuments()
+                                        .get(0)
+                                        .getId();
+
+                        db.collection("tareas")
+                                .document(documentId)
+                                .delete()
+                                .addOnSuccessListener(unused -> {
+
+                                    Toast.makeText(this,
+                                            "Tarea eliminada",
+                                            Toast.LENGTH_SHORT).show();
+
+                                    limpiarCampos();
+                                });
+
+                    } else {
+
+                        Toast.makeText(this,
+                                "Tarea no encontrada",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
-    private void limpiarCampos(){
+    private void cargarListaTareas() {
+
+        listenerRegistration = db.collection("tareas")
+                .addSnapshotListener((value, error) -> {
+
+                    if (error != null) {
+
+                        Toast.makeText(this,
+                                "Error al cargar datos",
+                                Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+
+                    listaTareas.clear();
+
+                    if (value != null) {
+
+                        for (DocumentSnapshot doc : value.getDocuments()) {
+
+                            Tarea tarea = doc.toObject(Tarea.class);
+
+                            if (tarea != null) {
+
+                                tarea.setId(doc.getId());
+
+                                listaTareas.add(tarea);
+                            }
+                        }
+                    }
+
+                    adaptador.notifyDataSetChanged();
+                });
+    }
+
+    private void limpiarCampos() {
         etId.setText("");
         etTitulo.setText("");
         etDescripcion.setText("");
         etEstado.setText("");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        if (listenerRegistration != null) {
+            listenerRegistration.remove();
+        }
     }
 }
